@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>同棲の家計管理と予算シミュレーション</title>
+  <style>
+    :root {
+      --bg-main: #f8f9fa;
+      --card-bg: #ffffff;
+      --text-main: #1f1f1f;
+      --text-sub: #5f6368;
+      --border-color: #e3e3e3;
+      --primary-color: #1a73e8;
+      --success-color: #34a853;
+      --warning-color: #fbbc04;
+      --danger-color: #ea4335;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      padding: 24px 16px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* ヘッダーカード / サマリー */
+    .summary-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.03);
+      margin-bottom: 20px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .summary-item {
+      padding: 12px;
+      border-radius: 12px;
+      background: #f8f9fa;
+    }
+
+    .summary-label {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+
+    .summary-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .summary-value.highlight-green {
+      color: #0d904f;
+    }
+
+    .summary-value.highlight-blue {
+      color: var(--primary-color);
+    }
+
+    /* 手取り枠（2名分） */
+    .income-section {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
+    .income-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-main);
+    }
+
+    .income-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 550px) {
+      .income-inputs {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .input-field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .input-field label {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrapper span {
+      position: absolute;
+      left: 12px;
+      color: var(--text-sub);
+      font-size: 0.95rem;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 10px 12px 10px 32px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #f8f9fa;
+      transition: border-color 0.2s;
+    }
+
+    .input-wrapper input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      background: #fff;
+    }
+
+    /* 支出内訳プログレスバー */
+    .expense-section {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .progress-bar-container {
+      height: 12px;
+      width: 100%;
+      background: #e9ecef;
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      margin-bottom: 24px;
+    }
+
+    .progress-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    /* 支出項目リスト */
+    .item-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .item-card {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+
+    .item-card:hover {
+      border-color: #c6c6c6;
+    }
+
+    .item-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .item-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .color-picker-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    .color-picker-dot::-webkit-color-swatch-wrapper { padding: 0; }
+    .color-picker-dot::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+    .item-name-input {
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      padding: 4px 6px;
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .item-name-input:hover, .item-name-input:focus {
+      background: #f1f3f4;
+      outline: none;
+    }
+
+    .item-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .type-select {
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: #f8f9fa;
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+
+    .btn-delete {
+      background: transparent;
+      border: none;
+      color: #9aa0a6;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      border-radius: 4px;
+    }
+
+    .btn-delete:hover {
+      color: var(--danger-color);
+      background: #fce8e6;
+    }
+
+    /* スライダーと金額領域 */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .custom-slider {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #e0e0e0;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    .custom-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #202124;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .custom-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .amount-display {
+      min-width: 110px;
+      text-align: right;
+    }
+
+    .amount-input-wrapper {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 2px 6px;
+      background: #f8f9fa;
+    }
+
+    .amount-input-wrapper span {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-right: 4px;
+    }
+
+    .amount-input-wrapper input {
+      width: 70px;
+      border: none;
+      background: transparent;
+      text-align: right;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .amount-input-wrapper input:focus {
+      outline: none;
+    }
+
+    /* 項目追加ボタン */
+    .btn-add {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      background: transparent;
+      color: var(--primary-color);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn-add:hover {
+      background: #e8f0fe;
+      border-color: var(--primary-color);
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- サマリーエリア (画像の上部を再現) -->
+  <div class="summary-card">
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="summary-label">毎月の合計支出（全体）</div>
+        <div class="summary-value" id="total-expense-display">円0</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">世帯残金（2人合計）</div>
+        <div class="summary-value highlight-green" id="household-remains-display">円0</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">あなた負担 / 残金</div>
+        <div class="summary-value highlight-blue" id="my-remains-display">円0</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">お相手負担 / 残金</div>
+        <div class="summary-value" id="partner-remains-display" style="color: #e37400;">円0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手取り入力枠（2人分） -->
+  <div class="income-section">
+    <div class="income-title">月間の手取り収入を入力</div>
+    <div class="income-inputs">
+      <div class="input-field">
+        <label for="income-me">あなたの月間手取り</label>
+        <div class="input-wrapper">
+          <span>円</span>
+          <input type="number" id="income-me" value="230000" step="5000" oninput="render()">
+        </div>
+      </div>
+      <div class="input-field">
+        <label for="income-partner">お相手の月間手取り</label>
+        <div class="input-wrapper">
+          <span>円</span>
+          <input type="number" id="income-partner" value="200000" step="5000" oninput="render()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 支出内訳 & 動的項目設定 -->
+  <div class="expense-section">
+    <div class="section-header">
+      <div class="section-title">支出の内訳と調整</div>
+    </div>
+
+    <!-- カラープログレスバー -->
+    <div class="progress-bar-container" id="progress-bar">
+      <!-- JSで動的生成 -->
+    </div>
+
+    <!-- 項目リスト -->
+    <div class="item-list" id="item-list">
+      <!-- JSで動的生成 -->
+    </div>
+
+    <!-- 項目追加ボタン -->
+    <button class="btn-add" onclick="addItem()">
+      <span>＋ 支出項目を追加する</span>
+    </button>
+  </div>
+
+  <div class="footer-note">
+    * 「折半」に設定した項目は2人で50%ずつ負担計算されます。「あなた負担」「お相手負担」で個別設定も可能です。
+  </div>
+
+</div>
+
+<script>
+  // 初期データ構造
+  let items = [
+    { id: 1, name: '家賃（手当適用後）', amount: 30000, type: 'split', color: '#1a73e8', max: 100000 },
+    { id: 2, name: '電気・ガス・水道', amount: 5000, type: 'split', color: '#1a73e8', max: 30000 },
+    { id: 3, name: '通信費（スマホ・Wi-Fi）', amount: 5000, type: 'me', color: '#1a73e8', max: 20000 },
+    { id: 4, name: '食費', amount: 20000, type: 'split', color: '#34a853', max: 60000 },
+    { id: 5, name: '日用品費（洗剤・消耗品等）', amount: 3000, type: 'split', color: '#34a853', max: 20000 },
+    { id: 6, name: 'ガソリン代', amount: 5000, type: 'me', color: '#34a853', max: 20000 },
+    { id: 7, name: '雑費・お小遣い', amount: 30000, type: 'me', color: '#fbbc04', max: 80000 },
+    { id: 8, name: '共有予備費・イベント貯金', amount: 5000, type: 'split', color: '#fbbc04', max: 30000 }
+  ];
+
+  const defaultColors = ['#1a73e8', '#34a853', '#fbbc04', '#ea4335', '#a142f4', '#24c1e0', '#ff6d00', '#46bdc6'];
+
+  function render() {
+    const incomeMe = parseFloat(document.getElementById('income-me').value) || 0;
+    const incomePartner = parseFloat(document.getElementById('income-partner').value) || 0;
+    const householdIncome = incomeMe + incomePartner;
+
+    let totalExpense = 0;
+    let myExpense = 0;
+    let partnerExpense = 0;
+
+    // 計算
+    items.forEach(item => {
+      const val = Number(item.amount) || 0;
+      if (item.type === 'split') {
+        totalExpense += val * 2; // 「折半」の場合、入力値は1人あたり負担額として扱う
+        myExpense += val;
+        partnerExpense += val;
+      } else if (item.type === 'me') {
+        totalExpense += val;
+        myExpense += val;
+      } else if (item.type === 'partner') {
+        totalExpense += val;
+        partnerExpense += val;
+      }
+    });
+
+    const householdRemains = householdIncome - totalExpense;
+    const myRemains = incomeMe - myExpense;
+    const partnerRemains = incomePartner - partnerExpense;
+
+    // サマリー表示の更新
+    document.getElementById('total-expense-display').textContent = '円 ' + totalExpense.toLocaleString();
+    document.getElementById('household-remains-display').textContent = '円 ' + householdRemains.toLocaleString();
+    document.getElementById('my-remains-display').textContent = '円 ' + myRemains.toLocaleString();
+    document.getElementById('partner-remains-display').textContent = '円 ' + partnerRemains.toLocaleString();
+
+    // プログレスバーの更新
+    const progressBar = document.getElementById('progress-bar');
+    progressBar.innerHTML = '';
+    
+    if (totalExpense > 0) {
+      items.forEach(item => {
+        let actualItemTotal = item.amount;
+        if (item.type === 'split') actualItemTotal = item.amount * 2;
+        
+        const pct = (actualItemTotal / totalExpense) * 100;
+        if (pct > 0) {
+          const seg = document.createElement('div');
+          seg.className = 'progress-segment';
+          seg.style.width = pct + '%';
+          seg.style.backgroundColor = item.color;
+          seg.title = `${item.name}: 円${actualItemTotal.toLocaleString()} (${Math.round(pct)}%)`;
+          progressBar.appendChild(seg);
+        }
+      });
+    }
+
+    // リスト描画（フォーカスが外れないよう、初回または追加・削除時以外は値の同期のみ行う）
+    renderItemList();
+  }
+
+  function renderItemList() {
+    const listContainer = document.getElementById('item-list');
+    
+    // HTMLの再生成（フォーカス維持のためActiveElementを意識）
+    const activeElId = document.activeElement ? document.activeElement.id : null;
+
+    listContainer.innerHTML = '';
+
+    items.forEach((item, index) => {
+      const card = document.createElement('div');
+      card.className = 'item-card';
+
+      // 折半/単独負担のラベル表示
+      let typeLabel = '';
+      if (item.type === 'split') typeLabel = '(あなた負担分)';
+      
+      card.innerHTML = `
+        <div class="item-top-row">
+          <div class="item-title-group">
+            <input type="color" class="color-picker-dot" value="${item.color}" 
+                   onchange="updateItemColor(${item.id}, this.value)">
+            <input type="text" class="item-name-input" value="${escapeHtml(item.name)}" 
+                   onchange="updateItemName(${item.id}, this.value)">
+          </div>
+          <div class="item-controls">
+            <select class="type-select" onchange="updateItemType(${item.id}, this.value)">
+              <option value="split" ${item.type === 'split' ? 'selected' : ''}>折半 (50:50)</option>
+              <option value="me" ${item.type === 'me' ? 'selected' : ''}>あなたのみ負担</option>
+              <option value="partner" ${item.type === 'partner' ? 'selected' : ''}>お相手のみ負担</option>
+            </select>
+            <button class="btn-delete" onclick="deleteItem(${item.id})" title="削除">✕</button>
+          </div>
+        </div>
+        <div class="slider-row">
+          <input type="range" class="custom-slider" min="0" max="${item.max}" step="500" value="${item.amount}"
+                 oninput="updateItemAmount(${item.id}, this.value)">
+          <div class="amount-display">
+            <div class="amount-input-wrapper">
+              <span>円</span>
+              <input type="number" id="input-amt-${item.id}" value="${item.amount}" step="500"
+                     oninput="updateItemAmount(${item.id}, this.value)">
+            </div>
+          </div>
+        </div>
+      `;
+      listContainer.appendChild(card);
+    });
+
+    if (activeElId && document.getElementById(activeElId)) {
+      document.getElementById(activeElId).focus();
+    }
+  }
+
+  // データ更新ロジック
+  function updateItemAmount(id, val) {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item.amount = parseFloat(val) || 0;
+      // スライダーの最大値を超えた場合、上限を自動拡張
+      if (item.amount > item.max) {
+        item.max = item.amount * 1.5;
+      }
+      render();
+    }
+  }
+
+  function updateItemName(id, name) {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item.name = name;
+      render();
+    }
+  }
+
+  function updateItemColor(id, color) {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item.color = color;
+      render();
+    }
+  }
+
+  function updateItemType(id, type) {
+    const item = items.find(i => i.id === id);
+    if (item) {
+      item.type = type;
+      render();
+    }
+  }
+
+  function addItem() {
+    const newId = Date.now();
+    const randomColor = defaultColors[items.length % defaultColors.length];
+    items.push({
+      id: newId,
+      name: '新しい支出項目',
+      amount: 5000,
+      type: 'split',
+      color: randomColor,
+      max: 30000
+    });
+    render();
+  }
+
+  function deleteItem(id) {
+    items = items.filter(i => i.id !== id);
+    render();
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // 初期起動
+  render();
+</script>
+
+</body>
+</html>
